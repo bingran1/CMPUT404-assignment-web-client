@@ -33,7 +33,13 @@ class HTTPResponse(object):
         self.body = body
 
 class HTTPClient(object):
-    #def get_host_port(self,url):
+    def get_host_port(self,url):
+        get = urllib.parse.urlparse(url)
+        if get.port:
+            port = get.port
+        else:
+            port = 80
+        return (get.hostname, port)
 
     def connect(self, host, port):
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -41,13 +47,19 @@ class HTTPClient(object):
         return None
 
     def get_code(self, data):
-        return None
+        split_data = data[0].split('\r\n')
+        code = split_data[0].split(' ')[1]
+        print('code123')
+        print(code)
+        return int(code)
 
     def get_headers(self,data):
-        return None
+        headers = data[0]
+        return headers
 
     def get_body(self, data):
-        return None
+        body = data[1]
+        return body
     
     def sendall(self, data):
         self.socket.sendall(data.encode('utf-8'))
@@ -70,11 +82,60 @@ class HTTPClient(object):
     def GET(self, url, args=None):
         code = 500
         body = ""
+        host, port = self.get_host_port(url) 
+        self.connect(host, port)
+
+        parse = urllib.parse.urlparse(url)
+        if (parse.path == ''):
+            path = '/'
+        else:
+            path = parse.path
+        messgae = 'GET ' + path + ' HTTP/1.1\r\n' + 'Host: ' + host + '\r\n\r\n'
+        print('check111')
+        print(messgae)
+        self.sendall(messgae)
+        receive_str = self.recvall(self.socket)
+    
+        data = receive_str.split('\r\n\r\n')
+        code = self.get_code(data)
+        body = self.get_body(data)
+        self.close()
         return HTTPResponse(code, body)
 
     def POST(self, url, args=None):
         code = 500
         body = ""
+        parse = urllib.parse.urlparse(url)
+        host, port = self.get_host_port(url) 
+        self.connect(socket.gethostbyname(parse.hostname), port)
+       
+        #parse = urllib.parse.urlparse(url)
+        if (parse.path == ''):
+            path = '/'
+        else:
+            path = parse.path
+ 
+        if args == None:
+            args = ''
+        else:
+            args = urllib.parse.urlencode(args)
+        content_len = len(args)
+        print('start1')
+        message1 = 'POST ' + path + ' HTTP/1.1\r\n' + 'Host: ' + host + '\r\n'
+        message2 = 'Content-Type: application/x-www-form-urlencoded\r\n' 
+        message3 = 'Content-Length: ' + str(content_len) + '\r\n\r\n' + args
+        message = message1 + message2 + message3
+        print('check222')
+        print(message)
+        self.sendall(message)
+        receive_str = self.recvall(self.socket)
+        data = receive_str.split('\r\n\r\n')
+        
+        body = self.get_body(data)
+        print('data999')
+        print(receive_str)
+        code = self.get_code(data)
+        self.close()
         return HTTPResponse(code, body)
 
     def command(self, url, command="GET", args=None):
