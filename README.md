@@ -7,6 +7,15 @@ See requirements.org (plain-text) for a description of the project.
 
 Make a simple web-client like curl or wget
 
+Source
+==============================
+
+https://docs.python.org/3/library/urllib.parse.html
+
+https://developer.mozilla.org/en-US/docs/Web/HTTP/Messages
+
+https://www.geeksforgeeks.org/python-string-partition-method/
+
 Contributors / Licensing
 ========================
 
