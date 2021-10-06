@@ -33,8 +33,12 @@ class HTTPResponse(object):
         self.body = body
 
 class HTTPClient(object):
+    # get the host and port by using urllib.parse
     def get_host_port(self,url):
         get = urllib.parse.urlparse(url)
+        # if the port exists, the return port
+        # should be the value get from the url
+        # if not, the port should be 80
         if get.port:
             port = get.port
         else:
@@ -47,17 +51,25 @@ class HTTPClient(object):
         return None
 
     def get_code(self, data):
+        # split the first element in data by '\r\n'.
+        # then split the first element of previous line returned
+        # data by ' ' and pick the second element which is code
         split_data = data[0].split('\r\n')
         code = split_data[0].split(' ')[1]
-        print('code123')
-        print(code)
         return int(code)
 
     def get_headers(self,data):
-        headers = data[0]
+        # the first element of data contains both
+        # code line and headers, so using parttion('\r\n')
+        # will get three elements: ('code line', '\r\n', 'left lines')
+        # and the left lines are headers,
+        header_str = data[0]
+        partition_str = header_str.partition('\r\n')
+        headers = partition_str[2]
         return headers
 
     def get_body(self, data):
+        # the second element of data is body
         body = data[1]
         return body
     
@@ -82,20 +94,27 @@ class HTTPClient(object):
     def GET(self, url, args=None):
         code = 500
         body = ""
+        # get host and port by calling above function
+        # then connect them
         host, port = self.get_host_port(url) 
         self.connect(host, port)
 
         parse = urllib.parse.urlparse(url)
+        # if we find that the path is empty
+        # the path should become to '/'
         if (parse.path == ''):
             path = '/'
         else:
             path = parse.path
+        # write message and send 
         messgae = 'GET ' + path + ' HTTP/1.1\r\n' + 'Host: ' + host + '\r\n\r\n'
-        print('check111')
-        print(messgae)
         self.sendall(messgae)
+        # receive data from the socket will get
+        # the string contains code, headers and body
         receive_str = self.recvall(self.socket)
-    
+        # split the receive stirng into two part
+        # first is code lines and headers and the second
+        # part is body
         data = receive_str.split('\r\n\r\n')
         code = self.get_code(data)
         body = self.get_body(data)
@@ -106,34 +125,33 @@ class HTTPClient(object):
         code = 500
         body = ""
         parse = urllib.parse.urlparse(url)
+        # get host and port by calling above function
+        # then connect them
         host, port = self.get_host_port(url) 
-        self.connect(socket.gethostbyname(parse.hostname), port)
+        self.connect(host, port)
        
-        #parse = urllib.parse.urlparse(url)
+        # if we find that the path is empty
+        # the path should become to '/'
         if (parse.path == ''):
             path = '/'
         else:
             path = parse.path
- 
+        # if we find that the args is None
+        # then it should become empty
         if args == None:
             args = ''
         else:
             args = urllib.parse.urlencode(args)
-        content_len = len(args)
-        print('start1')
+        # write message and send
         message1 = 'POST ' + path + ' HTTP/1.1\r\n' + 'Host: ' + host + '\r\n'
         message2 = 'Content-Type: application/x-www-form-urlencoded\r\n' 
-        message3 = 'Content-Length: ' + str(content_len) + '\r\n\r\n' + args
+        message3 = 'Content-Length: ' + str(len(args)) + '\r\n\r\n' + args
         message = message1 + message2 + message3
-        print('check222')
-        print(message)
         self.sendall(message)
         receive_str = self.recvall(self.socket)
         data = receive_str.split('\r\n\r\n')
         
         body = self.get_body(data)
-        print('data999')
-        print(receive_str)
         code = self.get_code(data)
         self.close()
         return HTTPResponse(code, body)
